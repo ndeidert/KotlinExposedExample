@@ -21,7 +21,8 @@ class Entry(id: EntityID<Int>) : IntEntity(id) {
     var message by Entries.message
 }
 
-val DSLOrDAO: Int = 0
+val activateDSL = true
+val activateDAO = true
 
 fun main() {
 
@@ -36,14 +37,14 @@ fun main() {
     val mySQLDB = connect(dataSourceMySQL)
 
 
-    if (DSLOrDAO == 0){
+    if (activateDSL) {
+        println("------------------------------------------- Start von DSL - Abschnitt -------------------------------------------")
         //DSL - Method!
         transaction(mySQLDB) {
-            // print sql to std-out
-            addLogger(StdOutSqlLogger)
-            SchemaUtils.create(Entries)                 // Table erstellen
+            //addLogger(StdOutSqlLogger) // Logger gibt SQL - Code in das Ausgabe-Fenster aus
+            SchemaUtils.create(Entries) // Tabelle Entries erstellen
 
-            //Insert in die Entries-Tabelle
+            // Create - Zeilen in die Entries-Tabelle einfügen
             Entries.insert {
                 it[name] = "Max Mustermann"
                 it[message] = "Hello World! I am message #1!"
@@ -61,63 +62,53 @@ fun main() {
                 it[message] = "Hello everyone! I am message #4"
             }
 
-            println("queryAll folgt:")
-            val queryAll = Entries.selectAll()                                              //Nimmt alle Einträge aus Entries und speichert sie in queryAll
-
-            //Updated in Entries die Zeile, wo entryId == 4 true ergibt
-            println("Entries.update folgt:")
-            Entries.update({ Entries.id eq 4 }) {
-                it[name] = "Michelle Mustermaedchen"                                        //Updated den Eintrag von Michel Mustermaedchen auf Michelle Mustermaedchen
-            }
-
-            println("querySpecific folgt:")
-            val querySpecific = Entries.select { Entries.name eq "Michelle Mustermaedchen" }
-
-            println("querySlice folgt:")
-            val querySlice = Entries.slice(Entries.id, Entries.name).selectAll()
-            val querySliceMap = querySlice.map { it[Entries.id] to it[Entries.name] }       //Man kann diese Queries auch mappen in eine Liste.
-
-            //Entries.delete folgt:
-            Entries.deleteWhere { Entries.id eq 4 }
-            println("queryDeleted folgt:")
-            val queryDeleted = Entries.selectAll()
-
-
+            // Read - Zeilen aus Tabelle Entries auslesen
+            // Alle Zeilen auslesen
+            val queryAll = Entries.selectAll()       //Nimmt alle Einträge aus Entries und speichert sie in queryAll
 
             println("Ausgabe von queryAll folgt:")
-            queryAll.forEach() {
-                println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}")
-            }
+            queryAll.forEach() { println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}") }
+
+            // Spezifische Zeile(n) auslesen - hier nach Name (Möglichkeiten unter https://github.com/JetBrains/Exposed/wiki/DSL zu finden)
+            val querySpecific = Entries.select { Entries.name eq "Michelle Mustermaedchen" }
 
             println("Ausgabe von querySpecific folgt:")
-            querySpecific.forEach {
-                println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}")
-            }
+            querySpecific.forEach { println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}") }
 
+            // Update - Werte von bestimmten Feldern verändern.
+            Entries.update({ Entries.id eq 4 }) { it[name] = "Michelle Mustermaedchen" } //Updated den Eintrag von Michel Mustermaedchen auf Michelle Mustermaedchen
+            val queryUpdate = Entries.select { Entries.id eq 4}
+            println("Ausgabe von queryUpdate folgt:")
+            queryUpdate.forEach { println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}") }
+
+            // Man kann auch spezifische Spalten aus einer Zeile auslesen (auch mehrere auf einmal!)
+            val querySlice = Entries.slice(Entries.id, Entries.name).selectAll()
             println("Ausgabe von querySlice folgt:")
-            //Man sieht, dass querySlice direkt eine Liste aus Pairs ist.
-            querySlice.forEach {
-                println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}")
-            }
+            querySlice.forEach { println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}") }
 
+            // Man kann diese Queries auch mappen in eine Liste aus Paaren (in diesem Fall)
+            val querySliceMap = querySlice.map { it[Entries.id] to it[Entries.name] }
             println("Ausgabe von querySliceMap folgt:")
-            querySliceMap.forEach {
-                println("ID: ${it.first}, Name: ${it.second}")
-            }
+            querySliceMap.forEach { println("ID: ${it.first}, Name: ${it.second}") }
+
+            // Delete - Spezifische Zeilen löschen (hier nach ID der Zeile)
+            Entries.deleteWhere { Entries.id eq 4 }
+            val queryDeleted = Entries.selectAll()
 
             println("Ausgabe von queryDeleted folgt:")
-            queryDeleted.forEach() {
-                println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}")
-            }
+            queryDeleted.forEach { println("ID: ${it[Entries.id]}, Name: ${it[Entries.name]}, Message: ${it[Entries.message]}") }
 
             SchemaUtils.drop(Entries)               //Table nach Benutzung löschen
         }
-    }else {
+    }
+    if (activateDAO) {
+        println("------------------------------------------- Start von DAO - Abschnitt -------------------------------------------")
         //DAO - Method
         transaction(mySQLDB) {
-            addLogger(StdOutSqlLogger)
-            SchemaUtils.create(Entries)             //Table erstellen
+            //addLogger(StdOutSqlLogger)  // Logger gibt SQL - Code in das Ausgabefenster aus
+            SchemaUtils.create(Entries) // Tabelle Entries erstellen
 
+            // Create - Neue Zeilen in "Entries" Tabelle erstellen
             Entry.new {
                 name = "Max Mustermann"
                 message = "Hello World! I am message #1"
@@ -131,13 +122,49 @@ fun main() {
                 message = "Hello boys and girls! I am message #3"
             }
             Entry.new {
-                name = "Michel Mustermaedchen"
+                name = "Michel Mustermädchen"
                 message = "Hello everyone! I am message #4"
             }
 
+            // Read - Zeilen auslesen aus Entries-Tabelle
+            // Alle Zeilen auslesen
+            val queryAll = Entry.all()
 
+            println("Ausgabe von queryAll folgt:")
+            queryAll.forEach() { println("ID: ${it.id}, Name: ${it.name}, Message: ${it.message}") }
 
+            // Spezifische auslesen (hier nach Name)
+            val queryName = Entry.find { Entries.name eq "Max Mustermann" }
 
+            println("Ausgabe von queryName folgt:")
+            queryName.forEach { println("ID: ${it.id}, Name: ${it.name}, Message: ${it.message}") }
+
+            // Nach ID auslesen
+            val queryID = Entry.findById(4)
+
+            println("Ausgabe von queryID folgt:")
+            // Null - Check erforderlich, da queryID vom Typ Entry? ist.
+            if (queryID != null) {
+                println("ID: ${queryID.id}, Name: ${queryID.name}, Message: ${queryID.message}")
+            }
+
+            // Update - Spezifische Inhalte von einzelnen Zeilen verändern
+            queryID?.name = "Michelle Mustermädchen"                               // name von entryFour verändern
+            val queryUpdate = Entry.find { Entries.name eq "Michelle Mustermädchen" } // Die ge-Updatete Zeile auslesen
+
+            println("Ausgabe von queryUpdate folgt:")
+            queryUpdate.forEach { println("ID: ${it.id}, Name: ${it.name}, Message: ${it.message}") }
+
+            // Delete - Spezifische Zeilen löschen
+            queryID?.delete()              // Zeile die zu entryFour gehört löschen
+            val queryDelete = Entry.all()   // Alle auslesen --> sollten jetzt nur noch Zeilen 1 bis 3 vorhanden sein.
+
+            println("Ausgabe von queryDelete folgt:")
+            queryDelete.forEach { println("ID: ${it.id}, Name: ${it.name}, Message: ${it.message}") }
+
+            // Bestimmte Spalte von einer Zeile auslesen:
+            val querySpecific = Entry.findById(1)?.message
+            println("Ausgabe von querySpecific folgt: $querySpecific")
 
             SchemaUtils.drop(Entries)           //Table nach Benutzung löschen
         }
