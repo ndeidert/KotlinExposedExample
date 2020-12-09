@@ -18,6 +18,7 @@ dependencies{
 
     implementation ("mysql:mysql-connector-java:8.0.19")
     implementation ("com.zaxxer:HikariCP:3.4.2")
+    implementation("org.postgresql:postgresql:42.2.2")
 }
 application{
     mainClassName = "MainKt"

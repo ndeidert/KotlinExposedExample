@@ -24,23 +24,37 @@ class Entry(id: EntityID<Int>) : IntEntity(id) {
 val activateDSL = true
 val activateDAO = true
 
+val dBName = "PostgreSQL"       // PostgreSQL oder MySQL einsetzen je nach Datenbanktyp
+
+var dB:Database? = null
+
 fun main() {
 
-    val config = HikariConfig().apply {
-        jdbcUrl = "jdbc:mysql://localhost/test?serverTimezone=UTC"          // Server spezifizieren
-        driverClassName = "com.mysql.cj.jdbc.Driver"                        // Treiber spezifizieren
-        username = "root"
-        password = "root"
-        maximumPoolSize = 10                                                // Maximale Verbindungen mit der Datenbank (Hikari)
-    }
-    val dataSourceMySQL = HikariDataSource(config)                          // Die Konfiguration einer bestimmten dataSource hinzufügen
-    val mySQLDB = connect(dataSourceMySQL)
 
+    if(dBName.equals("PostgreSQL")) {
+        val dB = connect(
+            "jdbc:postgresql://localhost:3030/postgreTest", driver = "org.postgresql.Driver",
+            user = "postgres", password = "root"
+        )
+    }
+    if(dBName.equals(("MySQL"))) {
+        val config = HikariConfig().apply {
+            jdbcUrl = "jdbc:mysql://localhost/test?serverTimezone=UTC"          // Server spezifizieren
+            driverClassName = "com.mysql.cj.jdbc.Driver"                        // Treiber spezifizieren
+            username = "root"
+            //password = "root"
+            maximumPoolSize = 10                                                // Maximale Verbindungen mit der Datenbank (Hikari)
+        }
+        val dataSourceMySQL =
+            HikariDataSource(config)                          // Die Konfiguration einer bestimmten dataSource hinzufügen
+        dB = connect(dataSourceMySQL)
+    }
+    println("Connect to $dBName Database")
 
     if (activateDSL) {
         println("------------------------------------------- Start von DSL - Abschnitt -------------------------------------------")
         //DSL - Method!
-        transaction(mySQLDB) {
+        transaction(dB) {
             //addLogger(StdOutSqlLogger) // Logger gibt SQL - Code in das Ausgabe-Fenster aus
             SchemaUtils.create(Entries) // Tabelle Entries erstellen
 
@@ -104,7 +118,7 @@ fun main() {
     if (activateDAO) {
         println("------------------------------------------- Start von DAO - Abschnitt -------------------------------------------")
         //DAO - Method
-        transaction(mySQLDB) {
+        transaction(dB) {
             //addLogger(StdOutSqlLogger)  // Logger gibt SQL - Code in das Ausgabefenster aus
             SchemaUtils.create(Entries) // Tabelle Entries erstellen
 
